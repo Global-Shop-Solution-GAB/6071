@@ -1,0 +1,138 @@
+﻿<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>#Title WO Proress#</title>
+    <!-- jquery in below script is for reloading page when bottom is reached with auto scroll-->
+    <script type="text/javascript" src="jquery.min.js"></script>
+
+    <script type="text/javascript">
+    $(window).load( function() {
+            //GAB script will turn this based on the setup in the Maintenance program
+			//#pageScroll();
+    });
+
+    function pageScroll() {
+        window.setInterval(function() {
+            var elem = document.getElementById('MainDiv');
+            var oldTop = elem.scrollTop;
+            elem.scrollTop = elem.scrollTop+1;
+            if(elem.scrollTop==oldTop)
+                elem.scrollTop=0;
+        }, 100);
+    };
+
+    //sleep and redirect. GAB script will determine the sleep time based on the setup in the Maintenance program
+	setTimeout(function (){
+			location.reload(1);
+		}, #sleep);
+    </script>
+</head>
+
+<body style="padding-left: 10px; padding-right: 10px;">
+    <img src="LOGO.png" alt="" />
+    <div>
+        <span style="float: left;">#CompanyCode</span>
+        <span style="float: right;">#DeptGroupShift</span>
+    </div>
+    <h1 style="text-align: center;">Shop Floor Efficiency</h1>
+
+    <div id="main">
+        <div class="a" id="div1" style="#DeptStyle"><p>#DeptN</p></div>
+        <div class="a" id="div2" style="#DeptStyle"><p>#DeptPCT</p></div>
+        <div class="a" id="div3">
+            <table id="TFtable" style="border: 1px solid green; width: 100%;">
+			
+                <tbody>
+              <!--- <tr>
+                        <td>WC</td>
+                        <td>Pct</td>
+                    </tr>
+                    <tr>
+                        <td>WC</td>
+                        <td>Pct</td>
+                    </tr>
+                    <tr>
+                        <td>WC</td>
+                        <td>Pct</td>
+                    </tr>--->
+					#table 
+                </tbody>
+			
+				
+            </table>
+        </div>
+    </div>
+	<div class="a" id="divf"><p>         </p></div>
+	<div id="main2">
+        <div class="a" id="div4" style="text-align: center;"><img src="LL_logo_div.png" alt="" align="middle"></div>
+        <div class="a" id="div5" style="#CompStyle"><p>#CompPCT</p></div>
+	</div>
+    <style>
+      #div1 {
+      border: 3px solid green;
+      text-align: center;  
+       vertical-align: middle;
+      width: 25%;
+      }
+
+      #div2 {
+      border: 3px solid green;
+      text-align: center;
+      width: 25%;
+      }
+	  #div4 {
+      border: 3px solid green;
+      text-align: center;  
+       vertical-align: middle;
+      width: 50%;
+      }
+
+      #div5 {
+      border: 3px solid green;
+      text-align: center;
+      width: 50%;
+      }
+
+      #div3 {
+      border: 3px solid green;
+      width: 50%;
+      }
+	  #divf {
+      width: 100%;
+      }
+
+	  
+      #table1 td, #table1 th {
+      border: 1px solid #ddd;
+      padding: 8px;
+      }
+
+      #main {
+      border: 1px solid #c3c3c3;
+      display: flex;
+      flex-direction: row;
+      } 
+
+      #main2 {
+      border: 1px solid #c3c3c3;
+      display: flex;
+      flex-direction: row;
+      }	  
+	  
+	  
+
+        /* Define the background color for all the EVEN background rows  */
+        .TFtable tr:nth-child(odd) {
+            background: none;
+        }
+
+        .TFtable tr:nth-child(even) {
+            background: #E6E7E8;
+            background: rgb(221, 222, 223);
+            background: rgba(221, 222, 223, .5);
+        }
+    </style>
+
+</body>
+</html>
