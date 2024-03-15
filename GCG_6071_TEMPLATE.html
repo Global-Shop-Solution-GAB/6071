@@ -1,0 +1,124 @@
+﻿<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>#Title WO Proress#</title>
+    <!-- jquery in below script is for reloading page when bottom is reached with auto scroll-->
+    <script type="text/javascript" src="jquery.min.js"></script>
+
+    <script type="text/javascript">
+    $(window).load( function() {
+            //GAB script will turn this based on the setup in the Maintenance program
+			//#pageScroll();
+    });
+
+    function pageScroll() {
+        window.setInterval(function() {
+            var elem = document.getElementById('MainDiv');
+            var oldTop = elem.scrollTop;
+            elem.scrollTop = elem.scrollTop+1;
+            if(elem.scrollTop==oldTop)
+                elem.scrollTop=0;
+        }, 100);
+    };
+
+    //sleep and redirect. GAB script will determine the sleep time based on the setup in the Maintenance program
+	setTimeout(function (){
+			location.reload(1);
+		}, #sleep);
+    </script>
+</head>
+
+<body style="padding-left: 10px; padding-right: 10px;">
+    <img src="LOGO.png" alt="" />
+    <div>
+        <span style="float: left;">#CompanyCode</span>
+        <span style="float: right;">#DeptGroupShift</span>
+    </div>
+    <h1 style="text-align: center;">Work Orders in Progress</h1>
+    <div>
+        <div id="HiddenDiv" >
+            <table id="HiddenTable" >
+                <thead>
+                    <tr>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:2%; text-align: center; border-radius: 10px 0 0 0;">Status</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:4%; text-align: center;">Emp.ID</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:15%; text-align: left;">Name</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:6%; text-align: center;">Job</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:4%; text-align: center;">Suffix</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:6%; text-align: center;">Seq</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:4%; text-align: center;">WC</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:15%; text-align: left;">Part Number</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:20%; text-align: left;">Description</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:6%; text-align: right;">Hrs Total</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:6%; text-align: right;">Hrs Est</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:6%; text-align: right;">All Hrs Total</td>
+                        <td style="opacity: 1; background: #017550; height:50px;color: #FFFFFF;font-size: 16px; width:6%; text-align: right; border-radius: 0 10px 0 0;">All Hrs Est</td>
+                    </tr>
+                </thead>             
+                <tbody style="visibility:hidden;">
+                    #table
+                </tbody>
+            </table>
+        </div>
+        <div class="MainDiv" id="MainDiv"  style="position: fixed; top: 210px; bottom: 55px;	overflow-y: scroll;">
+            <table class="TFtable">
+                <thead>
+                    <tr>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:2%; text-align: left; border-radius: 10px 0 0 0;">Status</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:4%; text-align: left;">Emp.ID</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:15%; text-align: left;">Name</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:6%; text-align: left;">Job</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:4%; text-align: left;">Suffix</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:6%; text-align: left;">Seq</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:4%; text-align: left;">WC</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:15%; text-align: left;">Part Number</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:20%; text-align: left;">Description</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:6%; text-align: right;">Hrs Total</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:6%; text-align: right;">Hrs Est</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:6%; text-align: right;">All Hrs Total</td>
+                        <td style="opacity: 0; background: #FFFFFF; height:5px;color: #FFFFFF;font-size: 16px; width:6%; text-align: right; border-radius: 0 10px 0 0;">All Hrs Est</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    #table
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div style="position: fixed;  left: 10px;  bottom: 0;  width: 100%;">
+        <table>
+            <thead>
+
+                <tr>
+                    <!--Red-->
+                    <td style="background: #FF0000; color: #FFFFFF;">Logged in But Not in Work Order</td>
+                    <!--Green-->
+                    <td style="background: #008000; color: #FFFFFF;">On Direct Labor</td>
+                    <!--Yellow-->
+                    <td style="background: #FFFF00; color: #000000;">On Indirect Labor</td>
+                    <!--Red-->
+                    <td style="background: #FF5656; color: #000000;">Exceeded total BOM Est Time</td>
+                    <!--Yellow-->
+                    <td style="background: #FFFFA3; color: #000000;">Within 10% of total BOM Est Time</td>
+                    <!--Green-->
+                    <td style="background: #89FF89; color: #000000;">On track</td>
+                </tr>
+            </thead>
+        </table>
+
+    </div>
+
+    <style>
+        /* Define the background color for all the EVEN background rows  */                 
+        .TFtable tr:nth-child(odd) {
+        background: none;
+        }     
+        .TFtable tr:nth-child(even) {
+        background: #E6E7E8;
+        background: rgb(221, 222, 223); 
+        background: rgba(221, 222, 223, .5);
+        }
+    </style>
+</body>
+</html>
