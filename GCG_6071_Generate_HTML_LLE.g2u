@@ -1,0 +1,985 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+v.Global.iRefresh_Rate.Declare
+v.Global.sFolder.Declare
+'v.Global.sFolder.Set("\\10.1.0.2\Common\GSS")
+v.Global.sFolder.Set(v.caller.GlobalDir)
+v.Global.sSender.Declare
+v.Global.sProcessIDfile.Declare(string)
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+
+'Coder: FEQ (Sisco)
+'Date: 08/12/2020
+'Customer: CWMF Corporation
+'Modification of trueview 5500. Originally coded by Bao.
+'This project will create trueview web pages that is similar with the screen: On Line System > View > Current Work in Progress (No Dollars)
+'User will maintain the selection in this script: Department + Employee Group (Employee_MSTR.Pr_Balance_Group) + Shift + Scroll(table body scroll feature)
+'The Maintenance program will be run from On Line System > Administration > Maintenance - Current WO in Progress Trueview - 5483
+'The TrueView one time open will be run from On Line System > View > TrueView - Current WO in Progress (No Dollars) - 5483
+'customized 5483 for Life line
+'f.Intrinsic.Control.Try
+'	v.Local..BulkDeclareString(sError,sRet)
+'	v.Local..BulkDeclareLong(iHour,iSleep)
+'	
+'	f.ODBC.Connection!conx.OpenCompanyConnection(99999)
+
+'	'Loop based on the iSleep time. Condition to stop: if past 11pm, then unload, or if switch = 'O' (run once from a custom menu item setup with switch 'O') then unload.
+'	F.Intrinsic.Control.Do			
+'		'Get Refresh Time or set default refresh time to 120
+'		f.ODBC.Connection!conx.ExecuteAndReturn("Select Top 1 RefreshTime from GCG_5500_Selection",v.Local.sRet)
+'		f.Intrinsic.Control.If(v.Local.sRet,=,"")
+'			v.Global.iRefresh_Rate.Set(120000)
+'		f.Intrinsic.Control.Else
+'			f.Intrinsic.Math.Mult(v.Local.sRet,1000,v.Global.iRefresh_Rate)
+'		f.Intrinsic.Control.EndIf
+'	
+'		'Check the time and see if it is past 11 pm
+'		F.Intrinsic.Date.Hour(v.Ambient.Now,v.Local.iHour)
+'		F.Intrinsic.Control.If(v.Local.iHour,>=,23)
+'			f.Intrinsic.Control.CallSub("Unload")
+'		F.Intrinsic.Control.Else
+'			F.Intrinsic.Control.CallSub("Load")	
+'			'This is to run once if lauched from a custom menu item with switch 'O'
+'			F.Intrinsic.Control.If(V.Caller.Switches,=,"O")
+'				f.Intrinsic.Control.CallSub("Unload")
+'			F.Intrinsic.Control.EndIf				
+'			f.Intrinsic.Math.Div(v.Global.iRefresh_Rate,1000,v.Local.iSleep)		
+'			F.Intrinsic.UI.Sleep(v.Local.iSleep)
+'		F.Intrinsic.Control.EndIf
+'	F.Intrinsic.Control.Loop
+
+f.Intrinsic.Control.Try
+	v.Local.iHour.Declare
+	v.Local.iSleep.Declare
+	v.Local.sRet.Declare
+	
+	V.Local.bExists.Declare(Boolean)
+	V.Local.sCheckFile.Declare(String)
+	f.ODBC.Connection!conx.OpenCompanyConnection(99999)
+	'Get Refresh Time or set default refresh time to 120
+	f.ODBC.Connection!conx.ExecuteAndReturn("Select Top 1 RefreshTime from GCG_6071_Selection",v.Local.sRet)
+	f.Intrinsic.Control.If(v.Local.sRet,=,"")
+		v.Global.iRefresh_Rate.Set(120000)
+	f.Intrinsic.Control.Else
+		f.Intrinsic.Math.Mult(v.Local.sRet,1000,v.Global.iRefresh_Rate)
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.If(v.Caller.Switches,<>,"O")
+		f.Intrinsic.String.Build("{0}\GCG_6071_PROD_MON_PID.txt",v.Caller.GasDir,v.Global.sProcessIDfile)
+		f.Intrinsic.file.Exists(v.Global.sProcessIDfile,v.Local.bExists)
+		f.Intrinsic.control.If(v.Local.bExists,=,false)
+			f.Intrinsic.File.String2File(v.Global.sProcessIDfile,v.Ambient.PID)
+		f.Intrinsic.control.Else
+			f.Intrinsic.File.File2String(v.global.sProcessIDfile,v.Local.sCheckFile)
+			f.Intrinsic.Control.If(v.Local.sCheckFile,<>,"")
+				f.Intrinsic.task.PIDRunning(v.Local.sCheckFile,v.Local.bExists)
+				f.Intrinsic.Control.If(v.Local.bExists,=,false)
+					f.intrinsic.File.String2File(v.Global.sProcessIDfile,v.Ambient.PID)
+				f.Intrinsic.Control.Else
+					f.Intrinsic.Control.CallSub("Unload")
+				f.Intrinsic.Control.EndIf
+			f.Intrinsic.Control.Else
+				f.intrinsic.File.String2File(v.Global.sProcessIDfile,v.Ambient.PID)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.EndIf
+	f.Intrinsic.UI.InvokeWaitDialog("Prod and Monitoring Trueview")
+	F.Intrinsic.Control.CallSub("Load")	
+	f.Intrinsic.UI.CloseWaitDialog
+	f.Intrinsic.Control.CallSub("Unload")
+	
+f.Intrinsic.Control.catch
+	f.Intrinsic.Control.CallSub(catching,"sub",v.Ambient.CurrentSubroutine,"errorno",v.Ambient.ErrorNumber,"errordesc",v.Ambient.ErrorDescription)
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Unload.Start
+
+V.Local.sError.Declare
+
+f.Intrinsic.Control.If(v.ODBC.conx.State,=,1)
+	F.ODBC.Connection!conX.close
+f.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.End
+
+
+Program.Sub.Unload.End
+
+Program.Sub.Load.Start
+f.Intrinsic.Control.Try
+v.Local..BulkDeclareString(sError,sSQL,sRet,sFQN,sHTML,sHold,sDir,sTime,sHours,sFilter,sDeptFilter,sGroupFilter,sShiftFilter)
+v.local..BulkDeclareLong(iCnt,iSecs)
+v.Local.bEx.Declare
+v.Local.bCheck.Declare
+v.Local..BulkDeclareDate(dDate,dTime)
+v.Local.fHours.Declare
+v.Local.sSenderFile.Declare
+v.Local.sProjFolder.declare
+v.Local.sGlobalFile.declare
+v.Local.sDefaultFolder.declare
+v.Local.sProjectFolder.Declare
+v.Local.sJQueryFile.Declare
+v.Local.sJQueryFileInProcFolder.Declare
+v.Local.sImgFile.Declare
+v.Local.sImgFileinProcFolder.Declare
+v.Local.sCustomDir.Declare
+v.Local.sMonHtml.Declare
+v.Local.sEffHtml.Declare
+v.Local.sEmailID.Declare
+
+'Check maintenance table
+f.Intrinsic.Control.If(v.DataTable.Maint.Exists)
+	f.Data.DataTable.Close("Maint")
+f.Intrinsic.Control.EndIf
+f.Data.DataTable.CreateFromSQL("Maint","conx","Select ltrim(rtrim(Dept)) as Dept,ltrim(rtrim(BalGroup)) as BalGroup,Shift,rtrim(Scroll) as Scroll,rtrim(EmailID) as EmailID,rtrim(EmailID2) as EmailID2, Notify from GCG_6071_Selection",True)
+f.Intrinsic.Control.If(v.DataTable.Maint.RowCount,=,0)
+	f.Intrinsic.Control.CallSub("Unload")
+f.Intrinsic.Control.EndIf
+
+'Check Custom folder
+'f.Intrinsic.String.Build("{0}\Custom",V.Caller.GlobalDir,v.Local.sCustomDir)
+'f.Intrinsic.File.DirExists(v.Local.sCustomDir,v.Local.bEx)
+'f.Intrinsic.Control.If(v.Local.bEx.Not)
+'	f.Intrinsic.File.CreateDir(v.Local.sCustomDir)
+'f.Intrinsic.Control.EndIf
+
+
+f.Intrinsic.String.Build("{0}\ProjectFolder.txt",v.Caller.GasDir,v.Local.sGlobalFile)
+f.Intrinsic.File.Exists(v.Local.sGlobalFile,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx)
+	f.Intrinsic.file.file2string(v.Local.sGlobalFile,v.Global.sFolder)
+	f.Intrinsic.File.DirExists(v.Global.sFolder,v.Local.bCheck)
+	f.Intrinsic.Control.If(v.Local.bCheck.Not)
+		f.Intrinsic.String.Build("{0}\CUSTOM",v.Caller.GlobalDir,v.Global.sFolder)
+		f.Intrinsic.file.String2File(v.Local.sGlobalFile,v.Global.sFolder)
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.Else
+	f.Intrinsic.String.Build("{0}\CUSTOM",v.Caller.GlobalDir,v.Global.sFolder)
+	f.Intrinsic.file.String2File(v.Local.sGlobalFile,v.Global.sFolder)
+f.Intrinsic.Control.EndIf
+
+f.Intrinsic.String.Build("{0}\SenderEmail.txt",v.Caller.GasDir,v.Local.sSenderFile)
+f.Intrinsic.File.Exists(v.Local.sSenderFile,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx)
+	f.Intrinsic.file.File2String(v.Local.sSenderFile,v.Global.sSender)
+f.Intrinsic.Control.EndIf
+
+'Check Trueview Project folder
+
+f.Intrinsic.String.Build("{0}\6071",V.Global.sFolder,v.Local.sProjectFolder)
+f.Intrinsic.File.DirExists(v.Local.sProjectFolder,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx.Not)
+	f.Intrinsic.File.CreateDir(v.Local.sProjectFolder)
+f.Intrinsic.Control.EndIf
+
+'Check Trueview folder
+f.Intrinsic.String.Build("{0}\6071\{1}",v.Global.sFolder,v.Caller.CompanyCode,v.Local.sDir)
+f.Intrinsic.File.DirExists(v.Local.sDir,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx.Not)
+	f.Intrinsic.File.CreateDir(v.Local.sDir)
+f.Intrinsic.Control.EndIf
+
+'Check Trueview folder
+f.Intrinsic.String.Build("{0}\6071\{1}\Monitor",v.Global.sFolder,v.Caller.CompanyCode,v.Local.sDir)
+f.Intrinsic.File.DirExists(v.Local.sDir,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx.Not)
+	f.Intrinsic.File.CreateDir(v.Local.sDir)
+f.Intrinsic.Control.EndIf
+
+'Check Trueview folder
+f.Intrinsic.String.Build("{0}\6071\{1}\Efficiency",v.Global.sFolder,v.Caller.CompanyCode,v.Local.sDir)
+f.Intrinsic.File.DirExists(v.Local.sDir,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx.Not)
+	f.Intrinsic.File.CreateDir(v.Local.sDir)
+f.Intrinsic.Control.EndIf
+
+'Check jquery.min.js file
+f.Intrinsic.String.Build("{0}\jquery.min.js",V.Caller.GasDir,v.Caller.CompanyCode,v.Local.sJQueryFile)
+f.Intrinsic.File.Exists(v.Local.sJQueryFile,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx)	
+	'Build destination for jqueryfile
+	f.Intrinsic.String.Build("{0}\6071\{1}\jquery.min.js",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sJQueryFileInProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sJQueryFileInProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy jquery file
+		f.Intrinsic.File.CopyFile(v.Local.sJQueryFile,v.Local.sJQueryFileInProcFolder)
+	f.Intrinsic.Control.EndIf		
+	
+	f.Intrinsic.String.Build("{0}\6071\{1}\Efficiency\jquery.min.js",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sJQueryFileInProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sJQueryFileInProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy jquery file
+		f.Intrinsic.File.CopyFile(v.Local.sJQueryFile,v.Local.sJQueryFileInProcFolder)
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.String.Build("{0}\6071\{1}\Monitor\jquery.min.js",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sJQueryFileInProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sJQueryFileInProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy jquery file
+		f.Intrinsic.File.CopyFile(v.Local.sJQueryFile,v.Local.sJQueryFileInProcFolder)
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.EndIf
+
+'Check logos file
+f.Intrinsic.String.Build("{0}\LOGO.png",V.Caller.GasDir,v.Caller.CompanyCode,v.Local.sImgFile)
+f.Intrinsic.File.Exists(v.Local.sImgFile,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx)	
+	'Build destination for logos
+	f.Intrinsic.String.Build("{0}\6071\{1}\LOGO.png",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sImgFileinProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy logos file
+		f.Intrinsic.File.CopyFile(v.Local.sImgFile,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.Control.EndIf		
+	
+	f.Intrinsic.String.Build("{0}\6071\{1}\Efficiency\LOGO.png",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sImgFileinProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy logos file
+		f.Intrinsic.File.CopyFile(v.Local.sImgFile,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.String.Build("{0}\6071\{1}\Monitor\LOGO.png",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sImgFileinProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy logos file
+		f.Intrinsic.File.CopyFile(v.Local.sImgFile,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.EndIf
+
+'Check logos file
+f.Intrinsic.String.Build("{0}\LOGO.png",V.Caller.GasDir,v.Caller.CompanyCode,v.Local.sImgFile)
+f.Intrinsic.File.Exists(v.Local.sImgFile,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx)	
+	'Build destination for logos
+	f.Intrinsic.String.Build("{0}\6071\{1}\LL_LOGO_DIV.png",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sImgFileinProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy logos file
+		f.Intrinsic.File.CopyFile(v.Local.sImgFile,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.Control.EndIf		
+	
+	f.Intrinsic.String.Build("{0}\6071\{1}\Efficiency\LL_LOGO_DIV.png",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sImgFileinProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy logos file
+		f.Intrinsic.File.CopyFile(v.Local.sImgFile,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.String.Build("{0}\6071\{1}\Monitor\LL_LOGO_DIV.png",V.Global.sFolder,v.Caller.CompanyCode,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.File.Exists(v.Local.sImgFileinProcFolder,v.Local.bEx)
+	f.Intrinsic.Control.If(v.Local.bEx.Not)
+		'Copy logos file
+		f.Intrinsic.File.CopyFile(v.Local.sImgFile,v.Local.sImgFileinProcFolder)
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.EndIf
+
+'1/Load Template GCG_6071_Template.html
+F.Intrinsic.String.Build("{0}\GCG_6071_TEMPLATE.html",v.Caller.GasDir,V.Local.sFQN)
+f.Intrinsic.File.Exists(v.Local.sFQN,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx.Not)
+	f.Intrinsic.String.Build("Template {0} does not exist",v.Local.sFQN,v.Local.sHold)
+	f.Intrinsic.UI.Msgbox(v.Local.sHold,"File")
+	f.Intrinsic.Control.CallSub("Unload")
+f.Intrinsic.Control.EndIf
+F.Intrinsic.file.File2String(V.Local.sFQN,V.Local.sHTML)
+
+'1/Load Template monitor
+F.Intrinsic.String.Build("{0}\GCG_6071_MONITOR_TEMPLATE_LLE.html",v.Caller.GasDir,V.Local.sFQN)
+f.Intrinsic.File.Exists(v.Local.sFQN,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx.Not)
+	f.Intrinsic.String.Build("Template {0} does not exist",v.Local.sFQN,v.Local.sHold)
+	f.Intrinsic.UI.Msgbox(v.Local.sHold,"File")
+	f.Intrinsic.Control.CallSub("Unload")
+f.Intrinsic.Control.EndIf
+F.Intrinsic.file.File2String(V.Local.sFQN,V.Local.sMonHtml)
+
+'1/Load Template efficiency
+F.Intrinsic.String.Build("{0}\GCG_6071_EFFICIENCY_TEMPLATE_LLE.html",v.Caller.GasDir,V.Local.sFQN)
+f.Intrinsic.File.Exists(v.Local.sFQN,v.Local.bEx)
+f.Intrinsic.Control.If(v.Local.bEx.Not)
+	f.Intrinsic.String.Build("Template {0} does not exist",v.Local.sFQN,v.Local.sHold)
+	f.Intrinsic.UI.Msgbox(v.Local.sHold,"File")
+	f.Intrinsic.Control.CallSub("Unload")
+f.Intrinsic.Control.EndIf
+F.Intrinsic.file.File2String(V.Local.sFQN,V.Local.sEffHtml)
+
+'2/Load data to table O
+'Be responsive when running from a custom menu item
+f.Intrinsic.Control.If(v.Caller.Switches,=,"O")
+	f.Intrinsic.UI.InvokeWaitDialog("Retrieving WO in progress data...")
+f.Intrinsic.Control.EndIf
+
+f.Intrinsic.Control.If(v.DataTable.O.Exists)
+	f.Data.DataTable.Close("O")
+f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.If(v.DataTable.OTemp.Exists)
+	f.Data.DataTable.Close("OTemp")
+f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.If(v.DataTable.ONODirect.Exists)
+	f.Data.DataTable.Close("ONODirect")
+f.Intrinsic.Control.EndIf
+f.Data.DataTable.CreateFromSQL("OTemp","conx","Select isNull(jp.Indirect,'') as Indirect,e.Employee,e.Name as EmployeeName,jp.Job,jp.Suffix,jp.Seq, jp.WorkCenter as WC, '' as PartNumber,'' as PartDescription,Case when IsNull(ta.Clocked_In,'') = '' Then 'Not Clocked In' When IsNull(ta.Clocked_In,'') = 'Y' and IsNull(jp.Job,'') = '' Then 'CLOCKED IN' When IsNull(ta.Clocked_In,'') = 'Y' and IsNull(jp.Job,'') <> '' Then jp.Job_Desc End as Description,Case when jp.Start_Date <> '1900-01-01' Then Convert(jp.Start_Date,SQL_CHAR) When jp.Start_Date = '1900-01-01' and ta.Date_In = '1900-01-01' Then '' When jp.Start_Date = '1900-01-01' and ta.Date_In <> '1900-01-01' then Convert(ta.Date_In,SQL_CHAR) End as ClockedIn,Case when jp.Start_Date <> '1900-01-01' Then Convert(jp.Start_Time,SQL_CHAR) When jp.Start_Date = '1900-01-01' and ta.Date_In = '1900-01-01' Then '' When jp.Start_Date = '1900-01-01' and ta.Date_In <> '1900-01-01' then Convert(ta.Time_In,SQL_CHAR) End as Since,Convert(0,SQL_Float) as HoursCompleted,Convert(0,SQL_Float) as ManHours,Convert(0,SQL_Float) as EstimatedHours,ltrim(rtrim(e.Dept_Employee)) as Dept_Employee,ltrim(rtrim(e.Pr_Balance_Group)) as Pr_Balance_Group,IsNull(ta.Clocked_In,'') as ClockedInFlag,jp.Job + '-' + jp.Suffix as JobSuffix,jp.Job + '-' + jp.Suffix + '-' + jp.Seq as JobSuffixSeq,LTRIM(RTRIM(jp.job)) + LTRIM(RTRIM(jp.seq)) as JobSeq,Left(LTRIM(RTRIM(jp.job)),4) + LTRIM(RTRIM(jp.seq)) as JobSeq1,e.Shift, Convert(0,SQL_Float) as TotalHoursCompleted, Convert(0,SQL_Float) as TotalESTHours,Convert(0,SQL_Float) as TotalManHrs from V_Employee_MSTR e left join (Select Employee,Date_In,Time_in,Clocked_In from v_Time_Attendance where Clocked_In = 'Y') ta on e.Employee = ta.Employee left join v_Jobs_In_Process_G jp on jp.Employee = ta.Employee and  jp.WAJ_Date = ta.Date_In where e.Date_Termination = '1900-01-01' and e.pay_type = 'H' ORDER BY e.EMPLOYEE",True)
+
+f.Data.DataTable.AddColumn("OTemp","FlagDoNotDisplay","String","N")
+
+'Life line does not want to display employees that are clocked into specific sequences
+' and LTRIM(RTRIM(jp.job)) + LTRIM(RTRIM(jp.seq)) not in  ('ZIND005000','ZIND009000','ZIND011000')
+'f.Data.DataView.Create("OTemp","OTempVw",22,"JobSeq != 'ZIND005000' and JobSeq != 'ZIND009000' and JobSeq != 'ZIND011000' ","")
+f.Data.DataView.Create("OTemp","OTempVw",22,"JobSeq1 = 'ZIND005000'","")
+f.Data.DataView.SetValue("OTemp","OTempVw",-1,"FlagDoNotDisplay","Y")
+
+f.Data.DataView.SetFilter("OTemp","OTempVw","JobSeq1 = 'ZIND009000'")
+f.Data.DataView.SetValue("OTemp","OTempVw",-1,"FlagDoNotDisplay","Y")
+
+f.Data.DataView.SetFilter("OTemp","OTempVw","JobSeq1 = 'ZIND011000'")
+f.Data.DataView.SetValue("OTemp","OTempVw",-1,"FlagDoNotDisplay","Y")
+
+f.Data.DataView.SetFilter("OTemp","OTempVw","JobSeq1 = 'ZIND014000'")
+f.Data.DataView.SetValue("OTemp","OTempVw",-1,"FlagDoNotDisplay","Y")
+
+f.Data.DataView.SetFilter("OTemp","OTempVw","")
+
+f.Data.DataView.ToDataTable("OTemp","OTempVw","O",true)
+
+f.Data.DataView.Close("OTemp","OTempVw")
+f.Data.DataTable.Close("OTemp")
+
+'f.Data.DataView.Create("OTemp","OTempVw",22,"[FlagDoNotDisplay] = 'N'","")
+
+'f.Data.DataView.ToDataTable("OTemp","OTempVw","O",true)
+'f.Data.DataView.Close("OTemp","OTempVw")
+'f.Data.DataTable.Close("OTemp")
+
+'3/Delete suspended rows
+f.Data.DataTable.Select("O","Description = 'suspended'",v.Local.sHold)
+f.Intrinsic.Control.If(v.Local.sHold,<>,"***NORETURN***")
+	f.Intrinsic.String.Split(v.Local.sHold,"*!*",v.Local.sHold)
+	F.Intrinsic.Control.For(v.Local.iCnt,v.local.shold.UBound,0,-1)
+		f.Data.DataTable.DeleteRow("O",v.Local.sHold(v.Local.iCnt))
+	F.Intrinsic.Control.Next(v.Local.iCnt)
+	f.Data.DataTable.AcceptChanges("O")
+f.Intrinsic.Control.EndIf
+
+'4/Get Part number, PartDescription
+f.Data.DataTable.CreateFromSQL("PartDescr","conx","Select Job + '-' + Suffix as JobSuffix, Part,Description from V_Job_Header",True)
+f.Data.Dictionary.CreateFromDatatable("PartDict","PartDescr","JobSuffix","Part")
+f.Data.Dictionary.SetDefaultReturn("PartDict","")
+f.Data.DataTable.FillFromDictionary("O","PartDict","JobSuffix","PartNumber")
+f.Data.Dictionary.Close("PartDict")
+f.Data.Dictionary.CreateFromDatatable("DescrDict","PartDescr","JobSuffix","Description")
+f.Data.Dictionary.SetDefaultReturn("DescrDict","")
+f.Data.DataTable.FillFromDictionary("O","DescrDict","JobSuffix","PartDescription")
+f.Data.Dictionary.Close("DescrDict")
+f.Data.DataTable.Close("PartDescr")
+
+'5/Get Hours Completed,Estimated Hours
+f.Data.DataTable.CreateFromSQL("Hours","conx","Select Job + '-' + Suffix + '-' + Seq as JobSuffixSeq, Hours_Actual, Hours_Estimated from V_Job_Operations",True)
+'Hours Completed
+f.Data.Dictionary.CreateFromDataTable("HoursCompletedDict","Hours","JobSuffixSeq","Hours_Actual")
+f.Data.Dictionary.SetDefaultReturn("HoursCompletedDict",0)
+f.Data.DataTable.FillFromDictionary("O","HoursCompletedDict","JobSuffixSeq","HoursCompleted")
+f.Data.Dictionary.Close("HoursCompletedDict")
+'Estimated Hours
+f.Data.Dictionary.CreateFromDataTable("EstimatedHoursDict","Hours","JobSuffixSeq","Hours_Estimated")
+f.Data.Dictionary.SetDefaultReturn("EstimatedHoursDict",0)
+f.Data.DataTable.FillFromDictionary("O","EstimatedHoursDict","JobSuffixSeq","EstimatedHours")
+f.Data.Dictionary.Close("EstimatedHoursDict")
+'Close source for dicts
+f.Data.DataTable.Close("Hours")
+
+'6/Calculate Man Hours = time since logged in
+'"Description <> 'CLOCKED IN' and Description <> 'Not Clocked In'"
+f.Data.DataView.Create("O","ODV",22,"Description <> 'CLOCKED IN' and Description <> 'Not Clocked In'","")
+f.Intrinsic.Control.For(v.Local.iCnt,0,v.DataView.O!ODV.RowCount--,1)
+	v.Local.dDate.Set(v.DataView.O!ODV(v.Local.iCnt).ClockedIn!FieldValString)
+	f.Intrinsic.String.Build("{0} {1}",v.DataView.O!ODV(v.Local.iCnt).ClockedIn!FieldValString,Variable.DataView.O!ODV(v.Local.iCnt).Since!FieldVal,v.Local.sTime)
+	f.Intrinsic.Date.TimeComp(v.Local.sTime,v.Local.dTime)
+	F.Intrinsic.Date.CombineDateTime(v.local.dDate,v.Local.dTime,V.local.dDate)	
+	F.Intrinsic.Date.DateDiff("S",v.Local.dDate,v.Ambient.Now,v.Local.iSecs)
+	f.Intrinsic.Math.Div(v.Local.iSecs,3600,v.Local.fHours)
+	f.Intrinsic.String.Format(v.Local.fHours,"#,###,##0.0000",v.Local.sHours)
+	f.Data.DataView.SetValue("O","ODV",v.Local.iCnt,"ManHours",v.Local.sHours)	
+f.Intrinsic.Control.Next(v.Local.iCnt)
+'Add column TotalHours and PctHoursCompleted
+f.Data.DataTable.AddExpressionColumn("O","TotalHours","float","HoursCompleted + ManHours")
+f.Data.DataTable.AddExpressionColumn("O","PctHoursCompleted","float","IIF(EstimatedHours <> 0, 100 * TotalHours / EstimatedHours, 0)")
+f.Data.DataTable.AddColumn("O","Status","String","")
+
+'We need to grab the hours for all work orders in the BOM. (Addition by FEQ for CWMF)
+F.Intrinsic.Control.CallSub(BOMcalculations)
+
+'7/For each setup page, generate a web page
+f.Intrinsic.Control.For(v.Local.iCnt,0,v.DataTable.Maint.RowCount--,1)
+
+	'Dept filter
+	f.Intrinsic.Control.If(v.DataTable.Maint(v.Local.iCnt).Dept!FieldValTrim,<>,"AllDept")
+		f.Intrinsic.String.Build("Dept_Employee = '{0}'",v.DataTable.Maint(v.Local.iCnt).Dept!FieldValTrim,v.Local.sFilter)
+	f.Intrinsic.Control.else		
+		v.Local.sFilter.Set("")
+	f.Intrinsic.Control.EndIf
+	'Group filter
+	f.Intrinsic.Control.If(v.DataTable.Maint(v.Local.iCnt).BalGroup!FieldValTrim,<>,"AllGroup")
+		f.Intrinsic.Control.If(v.Local.sFilter,<>,"")
+			f.Intrinsic.String.Build("{0} and Pr_Balance_Group = '{1}'",v.Local.sFilter,v.DataTable.Maint(v.Local.iCnt).BalGroup!FieldValTrim,v.Local.sFilter)
+		f.Intrinsic.Control.Else
+			f.Intrinsic.String.Build("Pr_Balance_Group = '{0}'",v.DataTable.Maint(v.Local.iCnt).BalGroup!FieldValTrim,v.Local.sFilter)
+		f.Intrinsic.Control.EndIf		
+	f.Intrinsic.Control.EndIf
+	'Shift filter
+	f.Intrinsic.Control.If(v.DataTable.Maint(v.Local.iCnt).Shift!FieldValTrim,<>,"AllShift")
+		f.Intrinsic.Control.If(v.Local.sFilter,<>,"")
+			f.Intrinsic.String.Build("{0} and Shift = '{1}'",v.Local.sFilter,v.DataTable.Maint(v.Local.iCnt).Shift!FieldValTrim,v.Local.sFilter)
+		f.Intrinsic.Control.Else
+			f.Intrinsic.String.Build("Shift = '{0}'",v.DataTable.Maint(v.Local.iCnt).Shift!FieldValTrim,v.Local.sFilter)
+		f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.EndIf
+	
+	'Custom for SunBelt filter: do not show Black Record ('Not Clocked In')
+	f.Intrinsic.Control.If(v.Local.sFilter,<>,"")
+		f.Intrinsic.String.Build("{0} and Description <> 'Not Clocked In'",v.Local.sFilter,v.Local.sFilter)
+	f.Intrinsic.Control.Else
+		v.Local.sFilter.Set("Description <> 'Not Clocked In'")
+	f.Intrinsic.Control.EndIf
+
+	
+	'This is for displaying the right top label of the web page
+	f.Intrinsic.String.Replace(v.DataTable.Maint(v.Local.iCnt).Dept!FieldValTrim,"AllDept","All",v.Local.sDeptFilter)
+	f.Intrinsic.String.Replace(v.DataTable.Maint(v.Local.iCnt).BalGroup!FieldValTrim,"AllGroup","All",v.Local.sGroupFilter)
+	f.Intrinsic.String.Replace(v.DataTable.Maint(v.Local.iCnt).Shift!FieldValTrim,"AllShift","All",v.Local.sShiftFilter)
+	
+	f.Intrinsic.Control.If(v.DataTable.OMonitor.Exists)
+		f.Data.DataTable.Close("OMonitor")
+	f.Intrinsic.Control.EndIf
+	
+	f.Data.DataView.SetFilter("O","ODV",v.Local.sFilter)
+'	f.Intrinsic.Control.If(v.DataView.O!ODV.RowCount,>,0)
+		f.Intrinsic.Math.Div(v.Global.iRefresh_Rate,1000,v.Local.sHold)		
+		f.Intrinsic.Control.CallSub("Generate_HTML","sTemplate",v.Local.sHTML,"sDept",v.Local.sDeptFilter,"sGroup",v.Local.sGroupFilter,"sShift",v.Local.sShiftFilter,"sInterval",v.Local.sHold,"sScroll",v.DataTable.Maint(v.Local.iCnt).Scroll!FieldValTrim)
+'	f.Intrinsic.Control.EndIf	
+	f.Intrinsic.Control.If(v.DataTable.OMonitor.Exists)
+		f.Data.DataTable.Close("OMonitor")
+	f.Intrinsic.Control.EndIf
+	f.Data.Dataview.ToDataTable("O","ODV","OMonitor",True)
+	f.Data.DataView.Create("OMonitor","OMonitorVw",22,"indirect = 'I' or indirect = ''","")
+	
+	f.Intrinsic.Control.If(v.Local.sDeptFilter.UCase,<>, "ALL")
+		f.Intrinsic.Control.If(v.DataTable.Maint(v.Local.iCnt).EmailID2!FieldValTrim,=,"")
+			v.Local.sEmailID.Set(v.DataTable.Maint(v.Local.iCnt).EmailID!FieldValTrim)
+		f.Intrinsic.Control.Else
+			f.Intrinsic.String.Build(" *!*{0}@!@ *!*{1}",v.DataTable.Maint(v.Local.iCnt).EmailID!FieldValTrim,v.DataTable.Maint(v.Local.iCnt).EmailID2!FieldValTrim,v.Local.sEmailID)
+		f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.CallSub("LoadLazyData", "sEmailID", V.Local.sEmailID, "sTemplate", v.Local.sMonHtml, "sDept", v.Local.sDeptFilter, "sGroup", v.Local.sGroupFilter, "sShift", v.Local.sShiftFilter, "sInterval", v.Local.sHold, "sScroll",v.DataTable.Maint(v.Local.iCnt).Scroll!FieldValTrim, "Notify", V.DataTable.Maint(V.Local.iCnt).Notify!FieldVal)
+	f.Intrinsic.Control.EndIf
+	
+f.Intrinsic.Control.Next(v.Local.iCnt)
+
+f.Data.DataView.Close("O","ODV")
+
+'Be responsive when running once from custom menu item
+f.Intrinsic.Control.If(v.Caller.Switches,=,"O")
+	f.Intrinsic.UI.CloseWaitDialog
+f.Intrinsic.Control.EndIf
+
+f.Intrinsic.Control.catch
+f.Intrinsic.Control.CallSub(catching,"sub",v.Ambient.CurrentSubroutine,"errorno",v.Ambient.ErrorNumber,"errordesc",v.Ambient.ErrorDescription)
+f.Intrinsic.Control.EndTry
+
+Program.Sub.Load.End
+
+Program.Sub.Generate_Monitor_HTML.Start
+f.Intrinsic.Control.Try
+	v.Local..BulkDeclareString(sError,sHTML,sFile,sHold,sCol,sRows,sTD,sTDConcat,sColName,sTable)
+	v.Local.sStatusColor.Declare
+	v.Local.sRowBackColor.Declare
+	v.Local.bFileCheck.Declare
+	v.local..BulkDeclareLong(i1,i2)
+	v.Local.iMin.Declare
+	v.Local.sBody.Declare
+	v.Local.bcheck.Declare
+	v.Local.sSender.Declare
+	
+	v.Local.sHTML.Set(v.Args.sMTemplate)
+	v.Local.iTest.Declare
+	
+	'Load dataview ODV to HTML -- using loop so that we can customize the style base on columns/cells:	
+	f.Intrinsic.String.Split("Status*!*Employee*!*EmployeeName*!*Job*!*Suffix*!*Seq*!*Description*!*TimeElapsed","*!*",v.Local.sCol)
+
+'For testing purpose, will generate many records to test scroll feature
+'f.Intrinsic.Control.For(v.Local.iTest,0,100,1)	
+	'Loop for the rows
+	f.Intrinsic.Control.For(v.Local.i1,0,v.datatable.OMon.RowCount--,1)
+		'Set the row back color
+		v.Local.iMin.Set(v.datatable.OMon(v.Local.i1).TimeElapsed!FieldValTrim)
+		f.Intrinsic.Control.if(v.Local.iMin,>=,10,"AND",v.Local.iMin,<,60)
+			'Yellow
+			v.Local.sRowBackColor.Set("#00BFFF")
+		f.Intrinsic.Control.Elseif(v.Local.iMin,>=,60)
+			'LightSalmon
+			v.Local.sRowBackColor.Set("LightSalmon")
+		f.Intrinsic.Control.EndIf	
+	
+		v.Local.sTDConcat.Set("")
+		'Loop the columns to customize the cell styles
+		f.Intrinsic.Control.For(v.Local.i2,0,v.Local.sCol.UBound,1)
+		
+			v.Local.sColName.Set(v.Local.sCol(v.Local.i2))		
+			
+			F.Intrinsic.Control.SelectCase(v.Local.sColName)			
+				F.Intrinsic.Control.Case("Status")	
+					f.Intrinsic.Control.If(v.datatable.OMon(v.Local.i1).Indirect!FieldValTrim,=,"I")
+						'lime
+						v.Local.sStatusColor.Set("#FFFF00")
+					f.Intrinsic.Control.Elseif(v.datatable.OMon(v.Local.i1).Indirect!FieldValTrim,=,"D",or,v.datatable.OMon(v.Local.i1).Indirect!FieldValTrim,=,"S")
+						'Green
+						v.Local.sStatusColor.Set("#008000")
+					f.Intrinsic.Control.Elseif(v.datatable.OMon(v.Local.i1).Description!FieldValTrim,=,"Not Clocked In")
+						'Black
+						v.Local.sStatusColor.Set("#000000")
+					f.Intrinsic.Control.Elseif(v.datatable.OMon(v.Local.i1).Description!FieldValTrim,=,"CLOCKED IN")
+						'Red
+						v.Local.sStatusColor.Set("#FF0000")
+					f.Intrinsic.Control.Else
+						'Frost White
+						v.Local.sStatusColor.Set("#F8F8FF")
+					f.Intrinsic.Control.EndIf
+
+					f.Intrinsic.String.Build("<td style="text-align:center; background:{1};">{0}</font></td>",v.datatable.OMon(v.Local.i1).Indirect!FieldValString,v.Local.sStatusColor,v.Local.sTD)			
+				F.Intrinsic.Control.Case("Employee")
+					f.Intrinsic.String.Build("<td  style="text-align:center; background:{1};">{0}</td>",v.datatable.OMon(v.Local.i1).Employee!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("EmployeeName")
+					f.Intrinsic.String.Build("<td  style="text-align:left; background:{1};">{0}</td>",v.datatable.OMon(v.Local.i1).EmployeeName!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("Job")
+					f.Intrinsic.String.Build("<td style="text-align:center; background:{1};">{0}</td>",v.datatable.OMon(v.Local.i1).Job!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("Suffix")	
+					f.Intrinsic.String.Build("<td style="text-align:center; background:{1};">{0}</td>",v.datatable.OMon(v.Local.i1).Suffix!FieldValString,v.Local.sRowBackColor,v.Local.sTD)		
+				F.Intrinsic.Control.Case("Seq")	
+					f.Intrinsic.String.Build("<td style="text-align:center; background:{1};">{0}</td>",v.datatable.OMon(v.Local.i1).Seq!FieldValString,v.Local.sRowBackColor,v.Local.sTD)			
+				F.Intrinsic.Control.Case("Description")	
+					f.Intrinsic.String.Build("<td  style="text-align:left;background:{1};">{0}</td>",v.datatable.OMon(v.Local.i1).Description!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("TimeElapsed")	
+					f.Intrinsic.String.Format(v.Local.iMin,"###,###,##0",v.Local.sHold)
+					f.Intrinsic.String.Build("{0} &nbsp",v.Local.sHold,v.Local.sHold)
+					f.Intrinsic.String.Build("<td  style="text-align:right; background:{1};">{0}</td>",v.Local.sHold,v.Local.sRowBackColor,v.Local.sTD)		
+			F.Intrinsic.Control.EndSelect
+			f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sTDConcat,v.Local.sTD,v.Ambient.NewLine,v.Local.sTDConcat)
+			
+		f.Intrinsic.Control.Next(v.Local.i2)		
+
+		f.Intrinsic.String.Build("{0}{1}<tr >{2}</tr>",v.Local.sRows,v.Ambient.NewLine,v.Local.sTDConcat,v.Local.sRows)		
+		f.Intrinsic.Control.If(v.datatable.OMon(v.Local.i1).Notify!FieldVal)
+			f.Global.Messaging.isaddressvalid(v.Global.sSender,v.Local.bcheck)
+			f.Intrinsic.Control.If(v.Local.bcheck)
+				f.Intrinsic.String.Build("{0}*!*Shop Floor Monitoring",v.Global.sSender,v.Local.sSender)
+				f.Intrinsic.Control.If(v.datatable.OMon(v.Local.i1).Indirect!FieldValTrim,=,"I")
+					f.Intrinsic.String.Build("Hi, {0}{0}Employee '{1}' bearing Employee ID '{2}' has been clocked into an indirect Work Order {3}-{4}-{5} for over {6} Minutes. {0}{0}Courtesy,{0}Shop Floor Monitoring System.",v.Ambient.NewLine,v.datatable.OMon(v.Local.i1).EmployeeName!FieldValTrim,v.datatable.OMon(v.Local.i1).Employee!FieldValString,v.datatable.OMon(v.Local.i1).Job!FieldValString,v.datatable.OMon(v.Local.i1).Suffix!FieldValString,v.datatable.OMon(v.Local.i1).Seq!FieldValString,v.Local.iMin,v.Local.sBody)
+				f.Intrinsic.Control.Else
+					f.Intrinsic.String.Build("Hi, {0}{0}Employee '{1}' bearing Employee ID '{2}' has not been clocked into a Job for over {6} Minutes. {0}{0}Courtesy,{0}Shop Floor Monitoring System.",v.Ambient.NewLine,v.datatable.OMon(v.Local.i1).EmployeeName!FieldValTrim,v.datatable.OMon(v.Local.i1).Employee!FieldValString,v.datatable.OMon(v.Local.i1).Job!FieldValString,v.datatable.OMon(v.Local.i1).Suffix!FieldValString,v.datatable.OMon(v.Local.i1).Seq!FieldValString,v.Local.iMin,v.Local.sBody)
+				f.Intrinsic.Control.EndIf
+				f.Global.Messaging.QueueMessage(v.Caller.CompanyCode,1,"GCG_6071_generate_html_lle.g2u","Productivity Monitoring System Alert",v.local.sSender,v.Args.sMEmailID,v.Local.sBody)
+			f.Intrinsic.Control.EndIf
+			
+		f.Intrinsic.Control.EndIf
+		
+		
+	f.Intrinsic.Control.Next(v.Local.i1)
+	
+'For testing purpose, will generate many records to test scroll feature	
+'f.Intrinsic.Control.Next(v.Local.iTest)
+	
+	v.Local.sTable.Set(v.Local.sRows)
+	
+	'Insert to template HTML
+	f.Intrinsic.String.Format(v.Ambient.Now,"MM/DD/YYYY Hh:Nn:Ss AMPM",v.Local.sHold)
+	f.Intrinsic.String.Build("{0} &nbsp &nbsp &nbsp Refreshed: {1} &nbsp &nbsp &nbsp  Interval: {2}",v.Caller.CompanyCode,v.Local.sHold,v.Args.sMInterval,v.Local.sHold)
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#CompanyCode",v.Local.sHold,V.Local.sHTML)	
+	f.Intrinsic.String.Build("Department: {0} &nbsp &nbsp &nbsp Group: {1} &nbsp &nbsp &nbsp Shift: {2}  ",v.Args.sMDept,v.Args.sMGroup,v.Args.sMShift,v.Local.sHold)
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#DeptGroupShift",v.Local.sHold,V.Local.sHTML)
+	'Change title of the web pages
+	f.Intrinsic.String.Build("{0}_{1}_{2}_{3}_MONITOR",v.Args.sMDept,v.Args.sMGroup,v.Args.sMShift,v.Args.sMScroll,v.Local.sHold)
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#Title WO Proress#",v.Local.sHold,V.Local.sHTML)
+	
+	'Turn on table body Scroll feature
+	f.Intrinsic.Control.If(v.Args.sMScroll,=,"Yes")
+		F.Intrinsic.String.Replace(V.Local.sHTML,"//#pageScroll()","pageScroll()",V.Local.sHTML)		
+	f.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#sleep",v.Global.iRefresh_Rate,V.Local.sHTML)
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#table",V.Local.sTable,V.Local.sHTML)	
+	
+	'Save new HTML file.
+	F.Intrinsic.String.Build("{0}\6071\{1}\Monitor\GCG_6071_Monitor_{2}_{3}_{4}_{5}.html",v.Global.sFolder,v.Caller.CompanyCode,v.Args.sMDept,v.Args.sMGroup,v.Args.sMShift,v.Args.sMScroll,V.Local.sFile)
+	f.Intrinsic.Control.Try
+		F.Intrinsic.File.String2File(V.Local.sFile,V.Local.sHTML)
+	f.Intrinsic.Control.Catch
+		f.Intrinsic.Debug.SetLA(v.Ambient.ErrorDescription)
+	f.Intrinsic.Control.EndTry
+	'Launch the Web page once if run from a custom menu item with switch 'O'
+	F.Intrinsic.Control.If(V.Caller.Switches,=,"O")
+		F.Intrinsic.Task.ShellExec(V.Caller.Handle,"OPEN",V.Local.sFile,"","",1)
+	f.Intrinsic.Control.EndIf
+	
+f.Intrinsic.Control.catch
+f.Intrinsic.Control.CallSub(catching,"sub",v.Ambient.CurrentSubroutine,"errorno",v.Ambient.ErrorNumber,"errordesc",v.Ambient.ErrorDescription)
+f.Intrinsic.Control.EndTry
+Program.Sub.Generate_Monitor_HTML.End
+
+Program.Sub.Generate_HTML.Start
+f.Intrinsic.Control.Try
+	v.Local..BulkDeclareString(sError,sHTML,sFile,sHold,sCol,sRows,sTD,sTDConcat,sColName,sTable)
+	v.Local.sStatusColor.Declare
+	v.Local.sRowBackColor.Declare
+	v.local..BulkDeclareLong(i1,i2)
+	v.Local.fActual.Declare
+	v.Local.fEstimate.Declare
+	V.Local.fCompleted.Declare(Float, 0.00)
+	
+	v.Local.sHTML.Set(v.Args.sTemplate)
+	v.Local.iTest.Declare
+	
+	'Load dataview ODV to HTML -- using loop so that we can customize the style base on columns/cells:	
+	f.Intrinsic.String.Split("Status*!*Employee*!*EmployeeName*!*Job*!*Suffix*!*Seq*!*WC*!*PartNumber*!*Description*!*TotalHours*!*EstimatedHours*!*TotalBOMHours*!*TotalESTHours","*!*",v.Local.sCol)
+	
+'For testing purpose, will generate many records to test scroll feature
+'f.Intrinsic.Control.For(v.Local.iTest,0,100,1)	
+	'Loop for the rows
+	
+	f.Intrinsic.Control.For(v.Local.i1,0,v.DataView.O!ODV.RowCount--,1)
+		'Set the row back color
+		v.Local.fActual.Set(v.DataView.O!ODV(v.Local.i1).TotalHours!FieldValTrim)
+		v.Local.fEstimate.Set(v.DataView.O!ODV(v.Local.i1).EstimatedHours!FieldValTrim)
+		f.Intrinsic.Control.if(v.Local.fActual,>,v.Local.fEstimate,"AND",v.DataView.O!ODV(v.Local.i1).Indirect!FieldValTrim,<>,"I")
+			'LightSalmon
+			v.Local.sRowBackColor.Set("LightSalmon")
+		f.Intrinsic.Control.Else
+			'FrostWhite
+			v.Local.sRowBackColor.Set("#F8F8FF")
+		f.Intrinsic.Control.EndIf	
+
+		'Total Percentage completed:
+		V.Local.fCompleted.Set(V.DataView.O!ODV(v.Local.i1).TotalBOMCompPerc!FieldValFloat)
+		'We want to base the status color by the percentage total completed.
+		F.Intrinsic.Control.If(v.DataView.O!ODV(v.Local.i1).Indirect!FieldValTrim,<>,"I")
+			F.Intrinsic.Control.SelectCase(V.Local.fCompleted)
+			F.Intrinsic.Control.Case(0)
+				'FrostWhite
+				v.Local.sRowBackColor.Set("#F8F8FF")
+			F.Intrinsic.Control.CaseRange(0.0001,89.9999)
+				'Green
+				v.Local.sRowBackColor.Set("#89ff89")
+			F.Intrinsic.Control.CaseRange(90, 99.9999)
+				'Yellow
+				v.Local.sRowBackColor.Set("#ffffa3")
+			F.Intrinsic.Control.CaseElse
+				'Red
+				v.Local.sRowBackColor.Set("#ff5656")
+			F.Intrinsic.Control.EndSelect
+			
+		F.Intrinsic.Control.EndIf
+		
+		v.Local.sTDConcat.Set("")
+		'Loop the columns to customize the cell styles
+		f.Intrinsic.Control.For(v.Local.i2,0,v.Local.sCol.UBound,1)
+		
+			v.Local.sColName.Set(v.Local.sCol(v.Local.i2))
+			
+			F.Intrinsic.Control.SelectCase(v.Local.sColName)			
+				F.Intrinsic.Control.Case("Status")	
+					f.Intrinsic.Control.If(v.DataView.O!ODV(v.Local.i1).Indirect!FieldValTrim,=,"I")
+						'Yellow
+						v.Local.sStatusColor.Set("#FFFF00")
+					f.Intrinsic.Control.Elseif(v.DataView.O!ODV(v.Local.i1).Indirect!FieldValTrim,=,"D",or,v.DataView.O!ODV(v.Local.i1).Indirect!FieldValTrim,=,"S")
+						'Green
+						v.Local.sStatusColor.Set("#008000")
+					f.Intrinsic.Control.Elseif(v.DataView.O!ODV(v.Local.i1).Description!FieldValTrim,=,"Not Clocked In")
+						'Black
+						v.Local.sStatusColor.Set("#000000")
+					f.Intrinsic.Control.Elseif(v.DataView.O!ODV(v.Local.i1).Description!FieldValTrim,=,"CLOCKED IN")
+						'Red
+						v.Local.sStatusColor.Set("#FF0000")
+					f.Intrinsic.Control.Else
+						'Frost White
+						v.Local.sStatusColor.Set("#F8F8FF")
+					f.Intrinsic.Control.EndIf
+					Function.Intrinsic.Debug.Stop
+					
+					f.Intrinsic.String.Build("<td style="text-align:center; background:{1};">{0}</font></td>",v.DataView.O!ODV(v.Local.i1).Status!FieldValString,v.Local.sStatusColor,v.Local.sTD)			
+				F.Intrinsic.Control.Case("Employee")
+					f.Intrinsic.String.Build("<td  style="text-align:center; background:{1};">{0}</td>",v.DataView.O!ODV(v.Local.i1).Employee!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("EmployeeName")
+					f.Intrinsic.String.Build("<td  style="text-align:left; background:{1};">{0}</td>",v.DataView.O!ODV(v.Local.i1).EmployeeName!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("Job")
+					f.Intrinsic.String.Build("<td style="text-align:center; background:{1};">{0}</td>",v.DataView.O!ODV(v.Local.i1).Job!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("Suffix")	
+					f.Intrinsic.String.Build("<td style="text-align:center; background:{1};">{0}</td>",v.DataView.O!ODV(v.Local.i1).Suffix!FieldValString,v.Local.sRowBackColor,v.Local.sTD)		
+				F.Intrinsic.Control.Case("Seq")	
+					f.Intrinsic.String.Build("<td style="text-align:center; background:{1};">{0}</td>",v.DataView.O!ODV(v.Local.i1).Seq!FieldValString,v.Local.sRowBackColor,v.Local.sTD)			
+				F.Intrinsic.Control.Case("WC")	
+					f.Intrinsic.String.Build("<td  style="text-align:center; background:{1};">{0}</td>",v.DataView.O!ODV(v.Local.i1).WC!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("PartNumber")	
+					f.Intrinsic.String.Build("<td  style="text-align:left; background:{1};">{0}</td>",v.DataView.O!ODV(v.Local.i1).PartNumber!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("Description")	
+					f.Intrinsic.String.Build("<td  style="text-align:left;background:{1};">{0}</td>",v.DataView.O!ODV(v.Local.i1).Description!FieldValString,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("TotalBOMHours")
+					f.Intrinsic.String.Format(v.DataView.O!ODV(v.Local.i1).TotalBOMHours!FieldValString,"###,###,##0.00",v.Local.sHold)
+					f.Intrinsic.String.Build("{0} &nbsp",v.Local.sHold,v.Local.sHold)
+					f.Intrinsic.String.Build("<td  style="text-align:right; background:{1};">{0}</td>",v.Local.sHold,v.Local.sRowBackColor,v.Local.sTD)	
+				F.Intrinsic.Control.Case("TotalESTHours")
+					f.Intrinsic.String.Format(v.DataView.O!ODV(v.Local.i1).TotalESTHours!FieldValString,"###,###,##0.00",v.Local.sHold)
+					f.Intrinsic.String.Build("{0} &nbsp",v.Local.sHold,v.Local.sHold)
+					f.Intrinsic.String.Build("<td  style="text-align:right; background:{1};">{0}</td>",v.Local.sHold,v.Local.sRowBackColor,v.Local.sTD)	
+				F.Intrinsic.Control.Case("TotalHours")	
+					f.Intrinsic.String.Format(v.DataView.O!ODV(v.Local.i1).TotalHours!FieldValString,"###,###,##0.00",v.Local.sHold)
+					f.Intrinsic.String.Build("{0} &nbsp",v.Local.sHold,v.Local.sHold)
+					f.Intrinsic.String.Build("<td  style="text-align:right; background:{1};">{0}</td>",v.Local.sHold,v.Local.sRowBackColor,v.Local.sTD)
+				F.Intrinsic.Control.Case("EstimatedHours")
+					f.Intrinsic.String.Format(v.DataView.O!ODV(v.Local.i1).EstimatedHours!FieldValString,"###,###,##0.00",v.Local.sHold)
+					f.Intrinsic.String.Build("{0} &nbsp",v.Local.sHold,v.Local.sHold)
+					f.Intrinsic.String.Build("<td  style="text-align:right; background:{1};">{0}</td>",v.Local.sHold,v.Local.sRowBackColor,v.Local.sTD)		
+			F.Intrinsic.Control.EndSelect
+			f.Intrinsic.String.Build("{0}{1}{2}",v.Local.sTDConcat,v.Local.sTD,v.Ambient.NewLine,v.Local.sTDConcat)
+		f.Intrinsic.Control.Next(v.Local.i2)		
+
+		f.Intrinsic.String.Build("{0}{1}<tr >{2}</tr>",v.Local.sRows,v.Ambient.NewLine,v.Local.sTDConcat,v.Local.sRows)		
+		
+	f.Intrinsic.Control.Next(v.Local.i1)
+	
+'For testing purpose, will generate many records to test scroll feature	
+'f.Intrinsic.Control.Next(v.Local.iTest)
+	
+	v.Local.sTable.Set(v.Local.sRows)
+	
+	'Insert to template HTML
+	f.Intrinsic.String.Format(v.Ambient.Now,"MM/DD/YYYY Hh:Nn:Ss AMPM",v.Local.sHold)
+	f.Intrinsic.String.Build("{0} &nbsp &nbsp &nbsp Refreshed: {1} &nbsp &nbsp &nbsp  Interval: {2}",v.Caller.CompanyCode,v.Local.sHold,v.Args.sInterval,v.Local.sHold)
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#CompanyCode",v.Local.sHold,V.Local.sHTML)	
+	f.Intrinsic.String.Build("Department: {0} &nbsp &nbsp &nbsp Group: {1} &nbsp &nbsp &nbsp Shift: {2}  ",v.Args.sDept,v.Args.sGroup,v.Args.sShift,v.Local.sHold)
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#DeptGroupShift",v.Local.sHold,V.Local.sHTML)
+	'Change title of the web pages
+	f.Intrinsic.String.Build("{0}_{1}_{2}_{3}",v.Args.sDept,v.Args.sGroup,v.Args.sShift,v.Args.sScroll,v.Local.sHold)
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#Title WO Proress#",v.Local.sHold,V.Local.sHTML)
+	
+	'Turn on table body Scroll feature
+	f.Intrinsic.Control.If(v.Args.sScroll,=,"Yes")
+		F.Intrinsic.String.Replace(V.Local.sHTML,"//#pageScroll()","pageScroll()",V.Local.sHTML)		
+	f.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#sleep",v.Global.iRefresh_Rate,V.Local.sHTML)
+	F.Intrinsic.String.Replace(V.Local.sHTML,"#table",V.Local.sTable,V.Local.sHTML)
+	
+	'Save new HTML file.
+	'It is important to note that since they are cloud customers, they will need to open the trueview through a website.. That is to say, the global/custom directory needs to be changed to:
+	'https://cwmftv.gss-cloud.com/ and then it can be accessed from anywhere. 
+	'For this option to be available for ANY cloud customer, the customer will need to make a service request to the cloud team.
+	'cloud customers are required to have a web service linked to their directory in order to be able to see these files. 
+	F.Intrinsic.String.Build("{0}\6071\{1}\GCG_6071_{2}_{3}_{4}_{5}.html",v.Global.sFolder,v.Caller.CompanyCode,v.Args.sDept,v.Args.sGroup,v.Args.sShift,v.Args.sScroll,V.Local.sFile)
+	f.Intrinsic.Control.Try
+		F.Intrinsic.File.String2File(V.Local.sFile,V.Local.sHTML)
+	f.Intrinsic.Control.Catch
+		f.Intrinsic.Debug.SetLA(v.Ambient.ErrorDescription)
+	f.Intrinsic.Control.EndTry
+	
+	'Launch the Web page once if run from a custom menu item with switch 'O'
+	F.Intrinsic.Control.If(V.Caller.Switches,=,"O")
+		F.Intrinsic.Task.ShellExec(V.Caller.Handle,"OPEN",V.Local.sFile,"","",1)
+	f.Intrinsic.Control.EndIf
+	
+f.Intrinsic.Control.catch
+f.Intrinsic.Control.CallSub(catching,"sub",v.Ambient.CurrentSubroutine,"errorno",v.Ambient.ErrorNumber,"errordesc",v.Ambient.ErrorDescription)
+f.Intrinsic.Control.EndTry
+Program.Sub.Generate_HTML.End
+
+Program.Sub.LoadLazyData.Start
+v.Local.ssql.Declare
+v.Local.sfilter.Declare
+v.Local.sHold.Declare
+v.Local.dDate.Declare
+v.Local.iMin.Declare
+v.Local.icount.Declare
+v.Local.iNotify.Declare
+v.Local.bNotify.Declare
+f.Intrinsic.Control.If(v.DataTable.OMon.Exists)
+	f.Data.Datatable.Close("OMon")
+f.Intrinsic.Control.EndIf
+
+f.Data.Dataview.ToDataTable("OMonitor","OMonitorVw","OMon",true)
+
+
+f.Data.DataView.Close("OMonitor","OMonitorVw")
+f.Data.datatable.Close("OMonitor")
+
+
+f.Intrinsic.Control.If(v.DataTable.OCompare.Exists)
+	f.Data.DataTable.Close("OCompare")
+f.Intrinsic.Control.EndIf
+f.Intrinsic.String.Build("Select * from GCG_6071_LZ_TRUEVW where dept_employee = '{0}'",v.Args.sDept,v.Local.ssql)
+f.Data.DataTable.CreateFromSQL("OCompare","conx",v.Local.ssql)
+f.Data.DataView.Create("OCompare","OCompareVw",22)
+f.Data.DataTable.AddColumn("OMon","TimeElapsed",Long)
+f.Data.DataTable.AddColumn("OMon","Notify","Boolean","False")
+f.Data.DataTable.AddColumn("OCompare","FlagDelete","String","Y")
+
+
+f.Intrinsic.Control.For(v.Local.icount,0,v.DataTable.OMon.RowCount--,1)
+	f.Intrinsic.String.Build("Status = '{0}' and Employee = '{1}'",v.DataTable.oMon(v.Local.icount).indirect!Fieldval,v.DataTable.oMon(v.Local.icount).employee!fieldval,v.Local.sfilter)
+	f.Data.dataview.SetFilter("OCompare","OCompareVw",v.Local.sfilter)
+	f.Intrinsic.Control.If(v.DataView.OCompare!OCompareVw.RowCount,=,0)
+		f.Intrinsic.String.Build("Insert into GCG_6071_LZ_TRUEVW (Employee, Employeename,Job,Suffix,Seq,Dept_employee,Time_elapsed,Status,Description,Notify_email) values ('{0}','{1}','{2}','{3}','{4}','{5}',0,'{6}','{7}','{8}')",v.DataTable.oMon(v.Local.icount).Employee!Fieldval,v.DataTable.oMon(v.Local.icount).employeename!Fieldval,v.DataTable.oMon(v.Local.icount).Job!Fieldval,v.DataTable.oMon(v.Local.icount).Suffix!Fieldval,v.DataTable.oMon(v.Local.icount).Seq!Fieldval,v.DataTable.oMon(v.Local.icount).Dept_Employee!Fieldval,v.DataTable.oMon(v.Local.icount).indirect!Fieldval,v.DataTable.oMon(v.Local.icount).Description!Fieldval,v.Args.sEmailID,v.Local.ssql)
+	f.Intrinsic.Control.Else
+		f.Data.Dataview.SetValue("OCompare","OCompareVw",0,"FlagDelete","N")
+		v.Local.dDate.Set(v.Dataview.OCompare!OCompareVw(0).CREATED!fieldVal)
+		f.Intrinsic.Date.DateDiff("N",v.Local.dDate,v.Ambient.Now,v.Local.iMin)
+		v.Local.bNotify.Set(true)
+		f.Intrinsic.Control.If(v.Local.iMin,<,10)
+			v.Local.bNotify.Set(false)
+			v.Local.iNotify.Set(0)
+		
+		f.Intrinsic.Control.ElseIf(v.Local.iMin,>=,10,"AND",v.Local.iMin,<,30)
+			f.Intrinsic.Control.If(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong,<,1)
+				v.Local.bNotify.Set(true)
+				v.Local.iNotify.Set(1)
+			f.Intrinsic.Control.Else
+				v.Local.iNotify.Set(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong)
+				v.Local.bNotify.Set(false)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.ElseIf(v.Local.iMin,>=,30,"AND",v.Local.iMin,<,60)
+			f.Intrinsic.Control.If(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong,<,2)
+				v.Local.bNotify.Set(true)
+				v.Local.iNotify.Set(2)
+			f.Intrinsic.Control.Else
+				v.Local.iNotify.Set(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong)
+				v.Local.bNotify.Set(false)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.ElseIf(v.Local.iMin,>=,60,"AND",v.Local.iMin,<,120)
+			f.Intrinsic.Control.If(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong,<,3)
+				v.Local.bNotify.Set(true)
+				v.Local.iNotify.Set(3)
+			f.Intrinsic.Control.Else
+				v.Local.iNotify.Set(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong)
+				v.Local.bNotify.Set(false)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.ElseIf(v.Local.iMin,>=,120,"AND",v.Local.iMin,<,240)
+			f.Intrinsic.Control.If(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong,<,4)
+				v.Local.bNotify.Set(true)
+				v.Local.iNotify.Set(4)
+			f.Intrinsic.Control.Else
+				v.Local.iNotify.Set(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong)
+				v.Local.bNotify.Set(false)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.ElseIf(v.Local.iMin,>=,240,"AND",v.Local.iMin,<,480)
+			f.Intrinsic.Control.If(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong,<,5)
+				v.Local.bNotify.Set(true)
+				v.Local.iNotify.Set(5)
+			f.Intrinsic.Control.Else
+				v.Local.iNotify.Set(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong)
+				v.Local.bNotify.Set(false)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.ElseIf(v.Local.iMin,>,480)
+			f.Intrinsic.Control.If(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong,<,6)
+				v.Local.bNotify.Set(true)
+				v.Local.iNotify.Set(6)
+			f.Intrinsic.Control.Else
+				v.Local.iNotify.Set(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong)
+				v.Local.bNotify.Set(false)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.If(v.Args.sDept,=,"All")
+			v.Local.bNotify.Set(False)
+			v.Local.iNotify.Set(v.DataView.OCompare!OCompareVw(0).notify!fieldvallong)
+		f.Intrinsic.Control.EndIf
+		
+		f.Intrinsic.String.Build("Update GCG_6071_LZ_TRUEVW set Time_elapsed = {0}, notify = {1} where employee = '{2}' ",v.Local.iMin,v.Local.iNotify,v.DataTable.oMon(v.Local.icount).Employee!Fieldval,v.Local.ssql)
+		
+		'check if notify is even enabled. if not set v.local.bNotify to false.
+		
+		V.Local.bNotify.Set(V.Args.Notify)
+		
+		f.Data.DataTable.SetValue("OMon",v.Local.icount,"TimeElapsed",v.Local.iMin,"Notify",v.Local.bNotify)
+		
+	f.Intrinsic.Control.EndIf
+	f.ODBC.Connection!conx.execute(v.Local.ssql)
+f.Intrinsic.Control.Next(v.Local.iCount)
+
+f.Data.DataView.SetFilter("OCompare","OCompareVw","FlagDelete = 'Y'")
+f.Intrinsic.Control.For(v.Local.icount,0,v.DataView.OCompare!OCompareVw.RowCount--,1)
+	f.Intrinsic.String.Build("Delete from GCG_6071_LZ_TRUEVW where employee = '{0}'",v.DataView.OCompare!OCompareVw(v.Local.icount).employee!fieldvaltrim,v.Local.ssql)
+	f.ODBC.Connection!conx.execute(v.Local.ssql)
+f.Intrinsic.Control.Next(v.Local.icount)
+
+f.Intrinsic.Math.Div(v.Global.iRefresh_Rate,1000,v.Local.sHold)		
+f.Intrinsic.Control.CallSub("Generate_Monitor_HTML", "sMTemplate", v.args.sTemplate, "sMDept", v.args.sDept, "sMGroup", v.args.sGroup, "sMShift", v.args.sShift, "sMInterval", v.local.sHold, "sMScroll", v.Args.sScroll, "sMEmailID", v.Args.sEmailID)
+
+f.Data.DataTable.Close("OMon")
+f.Data.DataView.Close("OCompare","OCompareVw")
+f.Data.DataTable.Close("OCompare")
+
+Program.Sub.LoadLazyData.End
+
+Program.Sub.catching.Start
+v.Local.sError.declare(string)
+
+'Function.Intrinsic.String.Concat(v.Ambient.Now,": Project: GCG_5500_GENERATE_Trueview.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",v.Args.sub,V.Ambient.NewLine,"Error Occurred ",V.Args.errorno," with description ",V.args.errordesc,V.Local.sError)
+F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error No: {3}{1} Description: {4}{1}GAB Version: {5}}",V.Ambient.ScriptPath,V.Ambient.Newline,v.Args.sub,V.Args.errorno,V.args.errordesc,V.Ambient.GABVersion,V.Local.sError)
+f.Intrinsic.Control.If(v.Caller.Switches,=,"O")
+	f.Intrinsic.UI.Msgbox(v.Local.sError)
+f.Intrinsic.Control.Else
+	f.Intrinsic.Debug.SetLA(v.Local.sError)
+f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.CallSub("Unload")
+Program.Sub.catching.End
+
+Program.Sub.BOMcalculations.Start
+F.Intrinsic.Control.Try
+V.Local.iBom.Declare(Long, 0)
+V.Local.fManHrs.Declare(Float, 0.0)
+V.Local.sFilter.Declare(String, "")
+V.Local.sError.Declare(String, "")
+
+'We are going to grab the distinct BOMs and loop through them to calculate the total est time and total completed time.
+
+'5/Get Hours Completed,Estimated Hours
+f.Data.DataTable.CreateFromSQL("dtHours","conx","Select Job, Sum(Hours_Actual) as TtlAct, Sum(Hours_Estimated) as TtlEst from V_Job_Operations where LMO = 'L' group by Job",True)
+'Hours Completed
+f.Data.Dictionary.CreateFromDataTable("dicTtlAct","dtHours","Job","TtlAct")
+f.Data.Dictionary.SetDefaultReturn("dicTtlAct", 0)
+f.Data.DataTable.FillFromDictionary("O","dicTtlAct","Job","TotalHoursCompleted")
+f.Data.Dictionary.Close("dicTtlAct")
+'Estimated Hours
+f.Data.Dictionary.CreateFromDataTable("dicTtlEst", "dtHours", "Job", "TtlEst")
+f.Data.Dictionary.SetDefaultReturn("dicTtlEst", 0)
+f.Data.DataTable.FillFromDictionary("O","dicTtlEst", "Job", "TotalESTHours")
+f.Data.Dictionary.Close("dicTtlEst")
+
+F.Data.DataTable.Close("dtHours")
+
+'Now we calculate total manual hours. We will be building a dictionary using the data already pulled.
+F.Data.DataView.ToDataTableDistinct("O", "ODV", "dtManTime", "JOB", True)
+F.Data.DataTable.AddColumn("dtManTime", "TotalManHrs", "Float")
+F.Intrinsic.Control.For(V.Local.iBom, 0, V.DataTable.dtManTime.RowCount--, 1)
+	F.Intrinsic.String.Build("[JOB] = '{0}'", V.DataTable.dtManTime(V.Local.iBom).JOB!FieldValTrim, V.Local.sFilter)
+	F.Data.DataTable.Compute("O", "SUM(ManHours)", V.Local.sFilter, V.Local.fManHrs)
+	F.Data.DataTable.SetValue("dtManTime", V.Local.iBom, "TotalManHrs", V.Local.fManHrs)
+F.Intrinsic.Control.Next(V.Local.iBom)
+
+f.Data.Dictionary.CreateFromDataTable("dicManTime", "dtManTime", "Job", "TotalManHrs")
+f.Data.Dictionary.SetDefaultReturn("dicManTime", 0)
+f.Data.DataTable.FillFromDictionary("O","dicManTime", "Job", "TotalManHrs")
+f.Data.Dictionary.Close("dicManTime")
+
+F.Data.DataTable.Close("dtManTime")
+
+f.Data.DataTable.AddExpressionColumn("O","TotalBOMHours","float","TotalHoursCompleted + TotalManHrs")
+f.Data.DataTable.AddExpressionColumn("O","TotalBOMCompPerc","float","IIF(TotalESTHours <> 0, 100 * TotalBOMHours / TotalESTHours, 0)")
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error No: {3}{1} Description: {4}{1}GAB Version: {5}}", V.Ambient.ScriptPath, V.Ambient.Newline, V.Ambient.CurrentSubroutine, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Ambient.GABVersion, V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+
+'f.Intrinsic.Control.CallSub(catching,"sub",v.Ambient.CurrentSubroutine,"errorno",v.Ambient.ErrorNumber,"errordesc",v.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.BOMcalculations.End
